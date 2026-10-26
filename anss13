@@ -1,0 +1,259 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+
+namespace LINQ_Assignment_02
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            Console.WriteLine("==================================================");
+            Console.WriteLine("             LINQ ASSIGNMENT 02 SOLUTIONS         ");
+            Console.WriteLine("==================================================\n");
+
+            #region 1. LINQ - Aggregate Operators
+
+            Console.WriteLine("--- 1. LINQ - Aggregate Operators ---");
+
+            // 1. Get the total units in stock for each product category.
+            Console.WriteLine("\n[Q1] Total units in stock per category:");
+            var totalUnitsPerCat = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Select(g => new { Category = g.Key, TotalUnits = g.Sum(p => p.UnitsInStock) });
+
+            foreach (var item in totalUnitsPerCat)
+                Console.WriteLine($" - {item.Category}: {item.TotalUnits} units");
+
+            // 2. Get the cheapest price among each category's products.
+            Console.WriteLine("\n[Q2] Cheapest price per category:");
+            var cheapestPricePerCat = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Select(g => new { Category = g.Key, CheapestPrice = g.Min(p => p.UnitPrice) });
+
+            foreach (var item in cheapestPricePerCat)
+                Console.WriteLine($" - {item.Category}: {item.CheapestPrice:C}");
+
+            // 3. Get the products with the cheapest price in each category (Use Let).
+            Console.WriteLine("\n[Q3] Products with cheapest price in each category (using Let):");
+            var cheapestProductsPerCat = from p in ListGenerators.ProductList
+                                         group p by p.Category into g
+                                         let minPrice = g.Min(x => x.UnitPrice)
+                                         select new
+                                         {
+                                             Category = g.Key,
+                                             CheapestProducts = g.Where(x => x.UnitPrice == minPrice)
+                                         };
+
+            foreach (var group in cheapestProductsPerCat)
+            {
+                Console.WriteLine($" Category: {group.Category}");
+                foreach (var p in group.CheapestProducts)
+                    Console.WriteLine($"   --> {p.ProductName} ({p.UnitPrice:C})");
+            }
+
+            // 4. Get the most expensive price among each category's products.
+            Console.WriteLine("\n[Q4] Most expensive price per category:");
+            var maxPricePerCat = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Select(g => new { Category = g.Key, MaxPrice = g.Max(p => p.UnitPrice) });
+
+            foreach (var item in maxPricePerCat)
+                Console.WriteLine($" - {item.Category}: {item.MaxPrice:C}");
+
+            // 5. Get the products with the most expensive price in each category.
+            Console.WriteLine("\n[Q5] Products with most expensive price in each category:");
+            var mostExpensiveProductsPerCat = from p in ListGenerators.ProductList
+                                               group p by p.Category into g
+                                               let maxPrice = g.Max(x => x.UnitPrice)
+                                               select new
+                                               {
+                                                   Category = g.Key,
+                                                   ExpensiveProducts = g.Where(x => x.UnitPrice == maxPrice)
+                                               };
+
+            foreach (var group in mostExpensiveProductsPerCat)
+            {
+                Console.WriteLine($" Category: {group.Category}");
+                foreach (var p in group.ExpensiveProducts)
+                    Console.WriteLine($"   --> {p.ProductName} ({p.UnitPrice:C})");
+            }
+
+            // 6. Get the average price of each category's products.
+            Console.WriteLine("\n[Q6] Average price per category:");
+            var avgPricePerCat = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Select(g => new { Category = g.Key, AvgPrice = g.Average(p => p.UnitPrice) });
+
+            foreach (var item in avgPricePerCat)
+                Console.WriteLine($" - {item.Category}: {item.AvgPrice:C}");
+
+            #endregion
+
+            #region 2. LINQ - Set Operators
+
+            Console.WriteLine("\n--------------------------------------------------");
+            Console.WriteLine("--- 2. LINQ - Set Operators ---");
+
+            // 1. Find the unique Category names from Product List.
+            Console.WriteLine("\n[Q1] Unique Category names:");
+            var uniqueCategories = ListGenerators.ProductList
+                .Select(p => p.Category)
+                .Distinct();
+
+            foreach (var cat in uniqueCategories)
+                Console.WriteLine($" - {cat}");
+
+            // 2. Produce a Sequence containing Unique first letter from both product and customer names.
+            Console.WriteLine("\n[Q2] Unique first letters (Union of Products & Customers):");
+            var prodFirstChars = ListGenerators.ProductList.Select(p => p.ProductName[0]);
+            var custFirstChars = ListGenerators.CustomerList.Select(c => c.CustomerName[0]);
+
+            var uniqueFirstCharsUnion = prodFirstChars.Union(custFirstChars);
+            foreach (var ch in uniqueFirstCharsUnion)
+                Console.Write($"{ch} ");
+            Console.WriteLine();
+
+            // 3. Create one sequence that contains the common first letter from both product and customer names.
+            Console.WriteLine("\n[Q3] Common first letters (Intersect of Products & Customers):");
+            var commonFirstChars = prodFirstChars.Intersect(custFirstChars);
+            foreach (var ch in commonFirstChars)
+                Console.Write($"{ch} ");
+            Console.WriteLine();
+
+            // 4. Create one sequence that contains first letters of product names that are not also first letters of customer names.
+            Console.WriteLine("\n[Q4] Product first letters NOT in customer names (Except):");
+            var prodExceptCustChars = prodFirstChars.Except(custFirstChars);
+            foreach (var ch in prodExceptCustChars)
+                Console.Write($"{ch} ");
+            Console.WriteLine();
+
+            // 5. Create one sequence that contains the last Three Characters in each name of all customers and products, including duplicates.
+            Console.WriteLine("\n[Q5] Last 3 characters of products and customers (Concat):");
+            var prodLast3 = ListGenerators.ProductList
+                .Select(p => p.ProductName.Length >= 3 ? p.ProductName.Substring(p.ProductName.Length - 3) : p.ProductName);
+            var custLast3 = ListGenerators.CustomerList
+                .Select(c => c.CustomerName.Length >= 3 ? c.CustomerName.Substring(c.CustomerName.Length - 3) : c.CustomerName);
+
+            var last3Concat = prodLast3.Concat(custLast3);
+            foreach (var str in last3Concat.Take(15)) // Displaying first 15 entries
+                Console.Write($"[{str}] ");
+            Console.WriteLine("...");
+
+            #endregion
+
+            #region 3. LINQ - Element Operators
+
+            Console.WriteLine("\n--------------------------------------------------");
+            Console.WriteLine("--- 3. LINQ - Element Operators ---");
+
+            // 1. Get the first product out of stock.
+            Console.WriteLine("\n[Q1] First product out of stock:");
+            var firstOutOfStock = ListGenerators.ProductList.FirstOrDefault(p => p.UnitsInStock == 0);
+            Console.WriteLine($" - {firstOutOfStock?.ProductName ?? "None"}");
+
+            // 2. Return the first product whose Price > 1000, unless there is no match, in which case null is returned.
+            Console.WriteLine("\n[Q2] First product with Price > 1000:");
+            var priceOver1000 = ListGenerators.ProductList.FirstOrDefault(p => p.UnitPrice > 1000);
+            Console.WriteLine($" - {(priceOver1000 != null ? priceOver1000.ProductName : "null")}");
+
+            // 3. Retrieve the second number greater than 5.
+            Console.WriteLine("\n[Q3] Second number greater than 5:");
+            int[] Arr = { 5, 4, 1, 3, 9, 8, 6, 7, 2, 0 };
+            var secondGreaterThan5 = Arr.Where(n => n > 5).ElementAtOrDefault(1); // Index 1 is second element
+            Console.WriteLine($" - {secondGreaterThan5}");
+
+            #endregion
+
+            #region 4. LINQ - Quantifiers
+
+            Console.WriteLine("\n--------------------------------------------------");
+            Console.WriteLine("--- 4. LINQ - Quantifiers ---");
+
+            string dictPath = "dictionary_english.txt";
+            string[] wordsDict = File.Exists(dictPath) ? File.ReadAllLines(dictPath) : new string[0];
+
+            // 1. Determine if any of the words in dictionary_english.txt contain the substring 'ei'.
+            Console.WriteLine("\n[Q1] Any word contains 'ei':");
+            bool containsEi = wordsDict.Any(w => w.Contains("ei"));
+            Console.WriteLine($" - Result: {containsEi}");
+
+            // 2. Return a grouped list of products only for categories that have at least one product that is out of stock.
+            Console.WriteLine("\n[Q2] Categories with AT LEAST ONE out-of-stock product:");
+            var catWithAnyOutOfStock = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Where(g => g.Any(p => p.UnitsInStock == 0));
+
+            foreach (var group in catWithAnyOutOfStock)
+                Console.WriteLine($" - {group.Key}");
+
+            // 3. Return a grouped list of products only for categories that have ALL of their products in stock.
+            Console.WriteLine("\n[Q3] Categories with ALL products in stock:");
+            var catWithAllInStock = ListGenerators.ProductList
+                .GroupBy(p => p.Category)
+                .Where(g => g.All(p => p.UnitsInStock > 0));
+
+            foreach (var group in catWithAllInStock)
+                Console.WriteLine($" - {group.Key}");
+
+            #endregion
+
+            #region 5. LINQ - Grouping Operators
+
+            Console.WriteLine("\n--------------------------------------------------");
+            Console.WriteLine("--- 5. LINQ - Grouping Operators ---");
+
+            // 1. Partition a list of numbers by their remainder when divided by 5.
+            Console.WriteLine("\n[Q1] Partition numbers by remainder divided by 5:");
+            List<int> numbersList = new List<int> { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+            var groupedByRemainder = numbersList.GroupBy(n => n % 5);
+
+            foreach (var group in groupedByRemainder)
+            {
+                Console.WriteLine($"Numbers with a remainder of {group.Key} when divided by 5:");
+                foreach (var n in group)
+                    Console.WriteLine(n);
+            }
+
+            // 2. Partition a list of words by their first letter.
+            Console.WriteLine("\n[Q2] Partition words in dictionary by first letter (Sample display):");
+            if (wordsDict.Length > 0)
+            {
+                var groupedByFirstChar = wordsDict
+                    .Where(w => !string.IsNullOrEmpty(w))
+                    .GroupBy(w => char.ToUpper(w[0]))
+                    .OrderBy(g => g.Key);
+
+                foreach (var group in groupedByFirstChar.Take(3)) // Displaying first 3 letters sample
+                {
+                    Console.WriteLine($"Words starting with '{group.Key}': {group.Count()} words");
+                }
+            }
+            else
+            {
+                Console.WriteLine(" (dictionary_english.txt file not found)");
+            }
+
+            // 3. Group words that consist of the same characters (Anagrams).
+            Console.WriteLine("\n[Q3] Group words consisting of same characters (Anagrams):");
+            string[] anagramArr = { "from", "salt", "earn", "last", "near", "form" };
+
+            var anagramGroups = anagramArr
+                .GroupBy(w => string.Concat(w.OrderBy(c => c)));
+
+            foreach (var group in anagramGroups)
+            {
+                foreach (var word in group)
+                    Console.WriteLine(word);
+                Console.WriteLine("....");
+            }
+
+            #endregion
+
+            Console.WriteLine("\n==================================================");
+            Console.WriteLine("                END OF ASSIGNMENT                ");
+            Console.WriteLine("==================================================");
+        }
+    }
+}
